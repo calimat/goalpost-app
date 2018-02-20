@@ -48,14 +48,14 @@ class FinishGoalVC: UIViewController, UITextFieldDelegate {
         guard let managedContext = appDelegate?.persistentContainer.viewContext else{ return }
         let goal = Goal(context: managedContext)
         
-        goal.goalDescription = goalDescription
-        goal.goalType = goalType.rawValue
+        goal.goalDescription = self.goalDescription
+        goal.goalType = self.goalType.rawValue
         goal.goalCompletionValue = Int32(pointsTextField.text!)!
         goal.goalProgress = Int32(0)
         
         do {
            try  managedContext.save()
-            print("Successfully svaed data.")
+            print("Successfully saved data.")
            completion(true)
         } catch {
             debugPrint("Could not save: \(error.localizedDescription)")
