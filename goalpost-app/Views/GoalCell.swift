@@ -14,7 +14,7 @@ class GoalCell: UITableViewCell {
     @IBOutlet weak var goalProgressLbl: UILabel!
     
     func configureCell(goal: Goal) {
-        self.goalProgressLbl.text = goal.goalDescription
+        self.goalDescriptionLbl.text = goal.goalDescription
         self.goalTypeLbl.text = goal.goalType
         self.goalProgressLbl.text = String(describing: goal.goalProgress)
         
