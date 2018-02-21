@@ -15,8 +15,13 @@ class GoalsVC: UIViewController {
 
     
     @IBOutlet weak var tableView: UITableView!
+    @IBOutlet weak var undoView: UIView!
+    @IBOutlet weak var goalRemoveLbl: UILabel!
+    @IBOutlet weak var undoBtn: UIButton!
     
     var goals: [Goal] = []
+    
+
     
     
     
@@ -25,6 +30,7 @@ class GoalsVC: UIViewController {
         tableView.delegate = self
         tableView.dataSource = self
         tableView.isHidden = false
+        hide(viewandItsElements: true)
         
     }
     
@@ -51,6 +57,23 @@ class GoalsVC: UIViewController {
     @IBAction func addGoalBtnWasPressed(_ sender: Any) {
         guard let createGoalVC = storyboard?.instantiateViewController(withIdentifier: "CreateGoalVC") else { return }
         presentDetail(createGoalVC)
+    }
+    
+    @IBAction func undoBtnWasPressed(_ sender: Any) {
+        print("undo button pressed")
+        guard let removedGoal = GoalDataService.instance.goalToBeRemoved else { return }
+        guard  let indexPathForRemovedGoal = GoalDataService.instance.indexPathForGoalToBeDeleted  else { return }
+        
+      // self.goals.insert(removedGoal, at: indexPathForRemovedGoal.row)
+        GoalDataService.instance.save(goalDescription: removedGoal.description, goalType: removedGoal.goalType, goalCompletionValue: removedGoal.completionValue, progress: removedGoal.progress) { (completed) in
+            
+        }
+        fetchCoreDataObjects()
+        self.tableView.reloadData()
+      //  GoalDataService.instance.goalToBeRemoved = nil
+      //  GoalDataService.instance.indexPathForGoalToBeDeleted = nil
+        self.hide(viewandItsElements: true)
+        
     }
     
 }
@@ -85,9 +108,15 @@ extension GoalsVC: UITableViewDelegate, UITableViewDataSource {
     
     func tableView(_ tableView: UITableView, editActionsForRowAt indexPath: IndexPath) -> [UITableViewRowAction]? {
         let deleteAction = UITableViewRowAction(style: .destructive, title: "DELETE") { (rowAction, indexPath) in
+            let removingGoal = self.goals[indexPath.row]
+            GoalDataService.instance.goalToBeRemoved = RemoveGoal(description: removingGoal.goalDescription!, completionValue: removingGoal.goalCompletionValue, progress: removingGoal.goalProgress, goalType: GoalType(rawValue: removingGoal.goalType!)!)
+            
+            GoalDataService.instance.indexPathForGoalToBeDeleted = indexPath
             self.removeGoal(atIndexPath: indexPath)
+            
             self.fetchCoreDataObjects()
             self.tableView.deleteRows(at: [indexPath], with: .automatic)
+            self.hide(viewandItsElements: false)
             
         }
         
@@ -107,6 +136,13 @@ extension GoalsVC: UITableViewDelegate, UITableViewDataSource {
 }
 
 extension GoalsVC {
+    
+    func hide(viewandItsElements ishidden: Bool) {
+        self.undoView.isHidden = ishidden
+        self.undoBtn.isHidden = ishidden
+        self.goalRemoveLbl.isHidden = ishidden
+        
+    }
     
     func setprogress(atIndexPath indexPath:IndexPath) {
         guard let managedContext = appDelegate?.persistentContainer.viewContext else  { return }
@@ -131,7 +167,6 @@ extension GoalsVC {
     func removeGoal(atIndexPath indexPath:IndexPath) {
         guard let managedContext = appDelegate?.persistentContainer.viewContext else  { return}
         managedContext.delete(goals[indexPath.row])
-        
         do {
             try managedContext.save()
             print("Succesfully removed goal!")
