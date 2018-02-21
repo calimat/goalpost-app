@@ -60,19 +60,11 @@ class GoalsVC: UIViewController {
     }
     
     @IBAction func undoBtnWasPressed(_ sender: Any) {
-        print("undo button pressed")
-        guard let removedGoal = GoalDataService.instance.goalToBeRemoved else { return }
-        guard  let indexPathForRemovedGoal = GoalDataService.instance.indexPathForGoalToBeDeleted  else { return }
-        
-      // self.goals.insert(removedGoal, at: indexPathForRemovedGoal.row)
-        GoalDataService.instance.save(goalDescription: removedGoal.description, goalType: removedGoal.goalType, goalCompletionValue: removedGoal.completionValue, progress: removedGoal.progress) { (completed) in
-            
-        }
+        guard let managedContext = appDelegate?.persistentContainer.viewContext else { return }
+        managedContext.undoManager?.undo()
+        hide(viewandItsElements: true)
         fetchCoreDataObjects()
-        self.tableView.reloadData()
-      //  GoalDataService.instance.goalToBeRemoved = nil
-      //  GoalDataService.instance.indexPathForGoalToBeDeleted = nil
-        self.hide(viewandItsElements: true)
+        tableView.reloadData()
         
     }
     
@@ -106,32 +98,26 @@ extension GoalsVC: UITableViewDelegate, UITableViewDataSource {
         return .none
     }
     
+    
     func tableView(_ tableView: UITableView, editActionsForRowAt indexPath: IndexPath) -> [UITableViewRowAction]? {
         let deleteAction = UITableViewRowAction(style: .destructive, title: "DELETE") { (rowAction, indexPath) in
-            let removingGoal = self.goals[indexPath.row]
-            GoalDataService.instance.goalToBeRemoved = RemoveGoal(description: removingGoal.goalDescription!, completionValue: removingGoal.goalCompletionValue, progress: removingGoal.goalProgress, goalType: GoalType(rawValue: removingGoal.goalType!)!)
-            
-            GoalDataService.instance.indexPathForGoalToBeDeleted = indexPath
             self.removeGoal(atIndexPath: indexPath)
-            
             self.fetchCoreDataObjects()
-            self.tableView.deleteRows(at: [indexPath], with: .automatic)
-            self.hide(viewandItsElements: false)
-            
+            tableView.deleteRows(at: [indexPath], with: .automatic)
         }
         
         let addAction = UITableViewRowAction(style: .normal, title: "ADD 1") { (rowAction, indexPath) in
             self.setprogress(atIndexPath: indexPath)
             tableView.reloadRows(at: [indexPath], with: .automatic)
-            
         }
         
         deleteAction.backgroundColor = #colorLiteral(red: 1, green: 0.1491314173, blue: 0, alpha: 1)
-        addAction.backgroundColor = #colorLiteral(red: 0.9385011792, green: 0.7164435983, blue: 0.3331357837, alpha: 1)
+        addAction.backgroundColor = #colorLiteral(red: 0.961445272, green: 0.650790751, blue: 0.1328578591, alpha: 1)
         
         return [deleteAction, addAction]
-        
     }
+
+
     
 }
 
@@ -165,11 +151,14 @@ extension GoalsVC {
     }
     
     func removeGoal(atIndexPath indexPath:IndexPath) {
-        guard let managedContext = appDelegate?.persistentContainer.viewContext else  { return}
+        guard let managedContext = appDelegate?.persistentContainer.viewContext else { return }
+        managedContext.undoManager = UndoManager()
         managedContext.delete(goals[indexPath.row])
+        
         do {
             try managedContext.save()
-            print("Succesfully removed goal!")
+            hide(viewandItsElements: false)
+            print("Successfully removed goal")
         } catch {
             debugPrint("Could not remove: \(error.localizedDescription)")
         }
